@@ -9,35 +9,59 @@ import 'package:login/components/my_textfield.dart';
 import 'package:login/models/DataModel.dart';
 import 'package:login/view/product_page.dart';
 
-class LoginPage extends StatelessWidget{
+class LoginPage extends StatefulWidget{
 
-  LoginPage({super.key});
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final dio = Dio();
+
   final usernameController = TextEditingController();
+
   final passwordController = TextEditingController();
 
   // Navigator.push(
-  // context,
-  // MaterialPageRoute(builder: (context) => const ProductPage())
-
-  void callSignIn({required Function() callback}) async {
+  Future<bool> callSignIn() async {
     final  response = await dio.get('http://tpcreative.me/login.json');
     final DataModel  data = DataModel.fromJson(response.data);
     if (kDebugMode) {
       print(data.data.message);
     }
     if(data.error == null && data.data.username == 'tpcreative.co@gmail.com'){
-      callback();
+      return true;
     }
+    return false;
+  }
+
+  void createWrongEmail() {
+    showDialog(context: context, builder: (context) {
+      return const AlertDialog(title: Text('Check username and password')
+      );
+    },);
   }
 
   //sign in method
-  void signUserIn(Function callback){
-    callSignIn(callback: () => {
-      callback()
-    });
+  Future<void> signUserIn({required  callback}) async {
+    if(passwordController.text.isEmpty){
+      createWrongEmail();
+    }else{
+      showDialog(context: context, builder: (context) {
+        return const Center(child: CircularProgressIndicator());
+      });
+      if(await callSignIn()){
+        if (context.mounted) Navigator.of(context).pop();
+        callback();
+      }else{
+        if (kDebugMode) {
+          print('Sign in failed');
+        }
+      }
+    }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +94,7 @@ class LoginPage extends StatelessWidget{
                 ),
                 const SizedBox(height: 25,),
                 MyButton(onTap : () =>{
-                  callSignIn(callback: () => {
+                  signUserIn(callback: () => {
                     Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const ProductPage()))
